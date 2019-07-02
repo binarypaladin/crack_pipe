@@ -3,12 +3,14 @@
 module CrackPipe
   class Action
     class Result
-      attr_reader :context, :output
+      attr_reader :context, :history, :output
 
-      def initialize(context: {}, output: nil, success:, **)
-        @context = context
-        @output = output
-        @success = success
+      def initialize(history)
+        last_result = history.last
+        @context = last_result[:context]
+        @history = history
+        @output = last_result[:output]
+        @success = last_result[:success]
       end
 
       def [](key)

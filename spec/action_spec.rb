@@ -11,8 +11,8 @@ module CrackPipe
         fail :return_error_code
 
         def truthy_value?(_, value: nil, **)
-          return pass!(value) if value == :short_circuit
-          return fail!(value) if value == :short_circuit!
+          pass!(value) if value == :short_circuit
+          fail!(value) if value == :short_circuit!
           value
         end
 
@@ -57,11 +57,10 @@ module CrackPipe
     end
 
     it 'results in a success with a truthy value' do
-      a = action.new(value: 'x')
-      a.history.size.must_equal(3)
-      a.history.select { |h| h[:next_track] == :default }.size.must_equal(3)
+      r = action.(value: 'x')
+      r.history.size.must_equal(3)
+      r.history.select { |h| h[:next] == :default }.size.must_equal(3)
 
-      r = a.result
       assert r.success?
       r.output.must_equal('x')
       r[:value].must_equal('x')
@@ -70,11 +69,10 @@ module CrackPipe
     end
 
     it 'results in a failure and uses the fail track with a falsy value' do
-      a = action.new(value: false)
-      a.history.size.must_equal(4)
-      a.history.select { |h| h[:next_track] == :fail }.size.must_equal(3)
+      r = action.(value: false)
+      r.history.size.must_equal(4)
+      r.history.select { |h| h[:next] == :fail }.size.must_equal(3)
 
-      r = a.result
       assert r.failure?
       r.output.must_equal(:custom_error_code_01)
       r[:failure_msg].must_match(/false/)
@@ -82,10 +80,9 @@ module CrackPipe
     end
 
     it 'short circuits execution with `pass!`' do
-      a = action.new(value: :short_circuit)
-      a.history.size.must_equal(2)
+      r = action.new.(value: :short_circuit)
+      r.history.size.must_equal(2)
 
-      r = a.result
       assert r.success?
       r.output.must_equal(:short_circuit)
     end
@@ -97,19 +94,17 @@ module CrackPipe
     end
 
     it 'nests one action in another' do
-      a = nesting_action.new(value: 'x')
-      a.history.size.must_equal(5)
+      r = nesting_action.(value: 'x')
+      r.history.size.must_equal(5)
 
-      r = a.result
       r.output.must_equal('X')
       r[:after].must_equal(true)
       r[:before].must_equal(true)
       r[:value_class].must_equal('String')
 
-      a = nesting_action.new(value: false)
-      a.history.size.must_equal(6)
+      r = nesting_action.(value: false)
+      r.history.size.must_equal(6)
 
-      r = a.result
       r.output.must_equal(:custom_error_code_02)
       r[:before].must_equal(true)
 

@@ -2,10 +2,11 @@
 
 module CrackPipe
   class Action
-    class ShortCircuit
-      attr_reader :success, :value
+    class Signal
+      attr_reader :success, :type, :value
 
-      def initialize(value, success = nil)
+      def initialize(type, value, success = nil)
+        @type = type
         @value = value
         @success = success
       end
