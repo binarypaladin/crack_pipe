@@ -14,6 +14,7 @@ module CrackPipe
           action.steps.each_with_object([]) do |s, results|
             next unless track == s.track
             results!(results, action, s, context).last.tap do |r|
+              action.after_flow_control(r)
               context = r[:context]
               track = r[:next]
               return results if r[:signal] == :halt

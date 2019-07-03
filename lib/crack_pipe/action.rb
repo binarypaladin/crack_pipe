@@ -58,6 +58,14 @@ module CrackPipe
       Exec.(self, context)
     end
 
+    # NOTE: This hook is here if you absolutely must do something to mutate the
+    # last flow control hash after a step has been executed. You can alter the
+    # context before it is passed to another step, insert a signal, or even pass
+    # custom key/value pairs that may be useful for debugging.
+    def after_flow_control(flow_control_hash)
+      flow_control_hash
+    end
+
     # NOTE: While this hook does nothing by default, it is here with the
     # intention of dealing with potential default values being generated either
     # for output or adding values to the context. A common example would be

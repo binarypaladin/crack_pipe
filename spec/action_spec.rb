@@ -112,5 +112,53 @@ module CrackPipe
       assert r.failure?
       r.output.must_equal(:short_circuit!)
     end
+
+    it 'executes `after_step` hook' do
+      a = Class.new(Action) do
+        step :one
+        step :two
+
+        def one(*)
+          1
+        end
+
+        def two(*)
+          :two
+        end
+
+        def after_step(output)
+          output.is_a?(Symbol) ? output.to_s : super
+        end
+      end
+
+      r = a.({})
+      r.history[0][:output].must_equal(1)
+      r.history[1][:output].must_equal('two')
+    end
+
+    it 'executes `after_flow_control` hook' do
+      a = Class.new(Action) do
+        step :one
+        step :two
+
+        def one(*)
+          :one
+        end
+
+        def two(_, one:, **)
+          "#{one}!"
+        end
+
+        def after_flow_control(flow_control_hash)
+          o = flow_control_hash[:output]
+          flow_control_hash[:context][o] = o.to_s if o.is_a?(Symbol)
+          super
+        end
+      end
+
+      r = a.({})
+      r.history[0][:context][:one].must_equal('one')
+      r.output.must_equal('one!')
+    end
   end
 end
