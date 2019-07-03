@@ -63,8 +63,8 @@ module CrackPipe
     # for output or adding values to the context. A common example would be
     # returning some kind of default failure object in place of a literal `nil`
     # or `false`.
-    def after_step(flow_control_hash)
-      flow_control_hash
+    def after_step(output)
+      output
     end
 
     def fail!(output)

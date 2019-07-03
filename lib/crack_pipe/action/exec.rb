@@ -7,23 +7,16 @@ module CrackPipe
     module Exec
       class << self
         def call(action, context, track = :default)
-          Result.new(action(action, context, [], track))
+          Result.new(action(action, context, track))
         end
 
-        def action(action, context, results = [], track = :default)
-          action.steps.each_with_object(results) do |s, rslts|
+        def action(action, context, track = :default)
+          action.steps.each_with_object([]) do |s, results|
             next unless track == s.track
-
-            if s.exec.is_a?(Action)
-              self.action(s.exec, context, rslts)
-            else
-              rslts << step(action, s, context)
-            end
-
-            rslts.last.tap do |r|
+            results!(results, action, s, context).last.tap do |r|
               context = r[:context]
               track = r[:next]
-              return rslts if r[:signal] == :halt
+              return results if r[:signal] == :halt
             end
           end
         end
@@ -68,11 +61,19 @@ module CrackPipe
             end
           end
 
-          action.after_step(flow_control_hash(action, step, context, output))
+          action.after_step(output)
         end
 
         def success_with_step?(action, step, output)
           step.always_pass? || step.track != :fail && !action.failure?(output)
+        end
+
+        private
+
+        def results!(results, action, step, context)
+          o = step(action, step, context)
+          return results.concat(o.history) if o.is_a?(Result)
+          results << flow_control_hash(action, step, context, o)
         end
       end
     end
