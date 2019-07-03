@@ -72,7 +72,7 @@ module CrackPipe
     end
 
     def failure?(output)
-      !output
+      output.is_a?(Result) ? output.failure? : !output
     end
 
     def pass!(output)
