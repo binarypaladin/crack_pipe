@@ -52,7 +52,7 @@ module CrackPipe
       @steps = steps ? steps.dup : self.class.steps
     end
 
-    def call(context)
+    def call(context, **)
       context = @__default_context__.merge(context)
       return @__wrapper__.call(Exec.(self, context)) if @__wrapper__
       Exec.(self, context)
