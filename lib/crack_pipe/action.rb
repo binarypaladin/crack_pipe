@@ -44,14 +44,14 @@ module CrackPipe
       end
     end
 
+    attr_reader :kwargs_overrides
 
-    def initialize(**default_context, &blk)
-      @__default_context__ = default_context.dup
+    def initialize(**kwargs_overrides, &blk)
       @__wrapper__ = block_given? ? blk : nil
+      @kwargs_overrides = kwargs_overrides
     end
 
     def call(context, **)
-      context = @__default_context__.merge(context)
       return @__wrapper__.call(Exec.(self, context)) if @__wrapper__
       Exec.(self, context)
     end

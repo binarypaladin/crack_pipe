@@ -51,14 +51,13 @@ module CrackPipe
         end
 
         def step(action, step, context)
+          kwargs = kwargs_with_context(action, context)
+
           output = catch(:signal) do
-            case (e = step.exec)
-            when Symbol
-              action.public_send(e, context, **context)
-            when Proc
-              action.instance_exec(context, **context, &e)
+            if (e = step.exec).is_a?(Symbol)
+              action.public_send(e, context, **kwargs)
             else
-              e.call(context, **context)
+              e.call(context, **kwargs)
             end
           end
 
@@ -70,6 +69,11 @@ module CrackPipe
         end
 
         private
+
+        def kwargs_with_context(action, context)
+          return context if action.kwargs_overrides.empty?
+          context.merge(action.kwargs_overrides)
+        end
 
         def results!(results, action, step, context)
           o = step(action, step, context)
