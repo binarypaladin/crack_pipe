@@ -44,12 +44,10 @@ module CrackPipe
       end
     end
 
-    attr_reader :steps
 
-    def initialize(steps = nil, **default_context, &blk)
+    def initialize(**default_context, &blk)
       @__default_context__ = default_context.dup
       @__wrapper__ = block_given? ? blk : nil
-      @steps = steps ? steps.dup : self.class.steps
     end
 
     def call(context, **)

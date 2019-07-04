@@ -11,7 +11,7 @@ module CrackPipe
         end
 
         def action(action, context, track = :default)
-          action.steps.each_with_object([]) do |s, results|
+          action.class.steps.each_with_object([]) do |s, results|
             next unless track == s.track
             results!(results, action, s, context).last.tap do |r|
               action.after_flow_control(r)
