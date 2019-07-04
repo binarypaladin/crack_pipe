@@ -73,7 +73,7 @@ module CrackPipe
       output
     end
 
-    def fail!(output)
+    def fail!(output = nil)
       Exec.halt(output, false)
     end
 
