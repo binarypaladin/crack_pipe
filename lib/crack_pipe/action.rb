@@ -16,7 +16,7 @@ module CrackPipe
     class << self
       attr_reader :steps
 
-      def call(context, &blk)
+      def call(context = {}, *, &blk)
         new(&blk).call(context)
       end
 
@@ -51,7 +51,7 @@ module CrackPipe
       @kwargs_overrides = kwargs_overrides
     end
 
-    def call(context, **)
+    def call(context = {}, *)
       return @__wrapper__.call(Exec.(self, context)) if @__wrapper__
       Exec.(self, context)
     end

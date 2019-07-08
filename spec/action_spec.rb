@@ -113,6 +113,20 @@ module CrackPipe
       r.output.must_equal(:short_circuit!)
     end
 
+    it 'works with a simple action with no context' do
+      action = Class.new(Action) do
+        step :truthy
+
+        def truthy(ctx, **)
+          ctx[:key] = true
+        end
+      end
+
+      r = action.call
+      assert r.success?
+      r[:key].must_equal(true)
+    end
+
     it 'executes `after_step` hook' do
       a = Class.new(Action) do
         step :one
