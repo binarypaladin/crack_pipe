@@ -13,6 +13,7 @@ module CrackPipe
         def action(action, context, track = :default)
           action.class.steps.each_with_object([]) do |s, results|
             next unless track == s.track
+
             results!(results, action, s, context).last.tap do |r|
               action.after_flow_control(r)
               context = r[:context]
@@ -53,12 +54,10 @@ module CrackPipe
         def step(action, step, context)
           kwargs = kwargs_with_context(action, context)
 
+          return :skipped unless should_exec?(step.exec_if, action, context, kwargs)
+
           output = catch(:signal) do
-            if (e = step.exec).is_a?(Symbol)
-              action.public_send(e, context, **kwargs)
-            else
-              e.call(context, **kwargs)
-            end
+            exec_with_args(step.exec, action, context, kwargs)
           end
 
           action.after_step(output)
@@ -70,14 +69,34 @@ module CrackPipe
 
         private
 
+        def callable?(e)
+          e.is_a?(Symbol) || e.respond_to?(:call)
+        end
+
+        def should_exec?(exec_if, action, context, kwargs)
+          return exec_with_args(exec_if, action, context.dup, kwargs) if callable?(exec_if)
+
+          exec_if
+        end
+
+        def exec_with_args(e, action, context, kwargs)
+          if e.is_a?(Symbol)
+            action.public_send(e, context, **kwargs)
+          else
+            e.call(context, **kwargs)
+          end
+        end
+
         def kwargs_with_context(action, context)
           return context if action.kwargs_overrides.empty?
+
           context.merge(action.kwargs_overrides)
         end
 
         def results!(results, action, step, context)
           o = step(action, step, context)
           return results.concat(o.history) if o.is_a?(Result)
+
           results << flow_control_hash(action, step, context, o)
         end
       end

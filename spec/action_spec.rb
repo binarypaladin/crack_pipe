@@ -50,14 +50,85 @@ module CrackPipe
           value.to_s.upcase
         end
 
-        def after_fail(ctx, **)
+        def after_fail(_ctx, **)
           :custom_error_code_02
         end
       end
     end
 
+    let(:action_with_skips) do
+      klass = skipped_action
+
+      Class.new(Action) do
+        step :before
+        step klass, if: ->(ctx, **) { ctx[:run_all_steps] }
+        step :always_run, if: true
+        step :never_run, if: false
+        step :conditional_method, if: :run_all_steps?
+
+        def before(ctx, **)
+          ctx[:before] = true
+        end
+
+        def conditional_method(ctx, **)
+          ctx[:conditional_method] = "exec'd"
+        end
+
+        def always_run(ctx, **)
+          ctx[:always_run] = true
+        end
+
+        def never_run(ctx, **)
+          ctx[:never_run] = true
+        end
+
+        def run_all_steps?(_, run_all_steps:, **)
+          run_all_steps
+        end
+      end
+    end
+
+    let(:skipped_action) do
+      Class.new(Action) do
+        step :maybe_hit_1
+        step :maybe_hit_2
+
+        def maybe_hit_1(ctx, **)
+          ctx[:maybe_hit_1] = true
+        end
+
+        def maybe_hit_2(ctx, **)
+          ctx[:maybe_hit_2] = true
+        end
+      end
+    end
+
+    it 'conditionally skips steps' do
+      r = action_with_skips.call(run_all_steps: false)
+      r.history.size.must_equal(5)
+      assert r.success?
+      assert r[:before]
+      assert r[:always_run]
+      refute r.context.key?(:never_run)
+      refute r.context.key?(:maybe_hit_1)
+      refute r.context.key?(:maybe_hit_2)
+      refute r.context.key?(:conditional_method)
+      r.output.must_equal(:skipped)
+      r.history.select { |h| h[:output] == :skipped }.size.must_equal(3)
+
+      r = action_with_skips.call(run_all_steps: true)
+      r.history.size.must_equal(6)
+      assert r.success?
+      assert r[:always_run]
+      assert r[:maybe_hit_1]
+      assert r[:maybe_hit_2]
+      refute r.context.key?(:never_run)
+      r[:conditional_method].must_equal("exec'd")
+      r.output.must_equal("exec'd")
+    end
+
     it 'results in a success with a truthy value' do
-      r = action.(value: 'x')
+      r = action.call(value: 'x')
       r.history.size.must_equal(3)
       r.history.select { |h| h[:next] == :default }.size.must_equal(3)
 
@@ -69,7 +140,7 @@ module CrackPipe
     end
 
     it 'results in a failure and uses the fail track with a falsy value' do
-      r = action.(value: false)
+      r = action.call(value: false)
       r.history.size.must_equal(4)
       r.history.select { |h| h[:next] == :fail }.size.must_equal(3)
 
@@ -80,7 +151,7 @@ module CrackPipe
     end
 
     it 'short circuits execution with `pass!`' do
-      r = action.new.(value: :short_circuit)
+      r = action.new.call(value: :short_circuit)
       r.history.size.must_equal(2)
 
       assert r.success?
@@ -88,13 +159,13 @@ module CrackPipe
     end
 
     it 'short circuits execution with `fail!`' do
-      r = action.(value: :short_circuit!)
+      r = action.call(value: :short_circuit!)
       assert r.failure?
       r.output.must_equal(:short_circuit!)
     end
 
     it 'nests one action in another' do
-      r = nesting_action.(value: 'x')
+      r = nesting_action.call(value: 'x')
       r.history.size.must_equal(5)
 
       r.output.must_equal('X')
@@ -102,13 +173,13 @@ module CrackPipe
       r[:before].must_equal(true)
       r[:value_class].must_equal('String')
 
-      r = nesting_action.(value: false)
+      r = nesting_action.call(value: false)
       r.history.size.must_equal(6)
 
       r.output.must_equal(:custom_error_code_02)
       r[:before].must_equal(true)
 
-      r = nesting_action.(value: :short_circuit!)
+      r = nesting_action.call(value: :short_circuit!)
       assert r.failure?
       r.output.must_equal(:short_circuit!)
     end
@@ -145,7 +216,7 @@ module CrackPipe
         end
       end
 
-      r = a.({})
+      r = a.call({})
       r.history[0][:output].must_equal(1)
       r.history[1][:output].must_equal('two')
     end
@@ -170,7 +241,7 @@ module CrackPipe
         end
       end
 
-      r = a.({})
+      r = a.call({})
       r.history[0][:context][:one].must_equal('one')
       r.output.must_equal('one!')
     end
